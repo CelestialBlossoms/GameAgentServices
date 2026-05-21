@@ -1,5 +1,6 @@
 # Streamlit and sqlite
 .streamlit/secrets.toml
+.codex-run/
 checkpoints.db
 checkpoints.db-*
 

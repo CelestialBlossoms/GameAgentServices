@@ -43,23 +43,23 @@ class TaskDataStatus:
 
     def add_and_draw_task_data(self, task_data: TaskData) -> None:
         status = self.status
-        status_str = f"Task **{task_data.name}** "
+        status_str = f"任务 **{task_data.name}** "
         match task_data.state:
             case "new":
-                status_str += "has :blue[started]. Input:"
+                status_str += "已 :blue[开始]。输入："
             case "running":
-                status_str += "wrote:"
+                status_str += "写入："
             case "complete":
                 if task_data.result == "success":
-                    status_str += ":green[completed successfully]. Output:"
+                    status_str += ":green[已成功完成]。输出："
                 else:
-                    status_str += ":red[ended with error]. Output:"
+                    status_str += ":red[已失败结束]。输出："
         status.write(status_str)
         status.write(task_data.data)
         status.write("---")
         if task_data.run_id not in self.current_task_data:
             # Status label always shows the last newly started task
-            status.update(label=f"""Task: {task_data.name}""")
+            status.update(label=f"""任务：{task_data.name}""")
         self.current_task_data[task_data.run_id] = task_data
         if all(entry.completed() for entry in self.current_task_data.values()):
             # Status is "error" if any task has errored

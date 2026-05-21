@@ -1,6 +1,9 @@
 from schema.models import AllModelEnum
 from schema.schema import (
     AgentInfo,
+    AuthRequest,
+    AuthResponse,
+    AuthUser,
     ChatHistory,
     ChatHistoryInput,
     ChatMessage,
@@ -13,6 +16,9 @@ from schema.schema import (
 
 __all__ = [
     "AgentInfo",
+    "AuthRequest",
+    "AuthResponse",
+    "AuthUser",
     "AllModelEnum",
     "UserInput",
     "ChatMessage",

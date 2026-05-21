@@ -1,6 +1,6 @@
 import asyncio
 import os
-import urllib.parse
+import time
 import uuid
 from collections.abc import AsyncGenerator
 
@@ -24,9 +24,51 @@ from voice import VoiceManager
 # The app heavily uses AgentClient to interact with the agent's FastAPI endpoints.
 
 
-APP_TITLE = "Agent Service Toolkit"
-APP_ICON = "🧰"
+APP_TITLE = "智能服务平台"
+APP_ICON = "✨"
 USER_ID_COOKIE = "user_id"
+
+
+def coerce_chat_message(message: object) -> ChatMessage | None:
+    """Accept ChatMessage objects even after Streamlit reloads modules."""
+    if isinstance(message, ChatMessage):
+        return message
+    try:
+        if hasattr(message, "model_dump"):
+            return ChatMessage.model_validate(message.model_dump())
+        if isinstance(message, dict):
+            return ChatMessage.model_validate(message)
+    except ValidationError:
+        return None
+    return None
+
+
+def get_chat_title(messages: list[ChatMessage]) -> str:
+    for message in messages:
+        if message.type == "human" and message.content.strip():
+            title = message.content.strip().replace("\n", " ")
+            return title[:24] + ("..." if len(title) > 24 else "")
+    return "新对话"
+
+
+def save_current_chat() -> None:
+    thread_id = st.session_state.get("thread_id")
+    messages = st.session_state.get("messages")
+    if not thread_id or messages is None:
+        return
+    if "chat_sessions" not in st.session_state:
+        st.session_state.chat_sessions = {}
+    if "chat_session_order" not in st.session_state:
+        st.session_state.chat_session_order = []
+    if "chat_session_meta" not in st.session_state:
+        st.session_state.chat_session_meta = {}
+    st.session_state.chat_sessions[thread_id] = list(messages)
+    st.session_state.chat_session_meta[thread_id] = {
+        "title": get_chat_title(messages),
+        "updated_at": time.time(),
+    }
+    if thread_id not in st.session_state.chat_session_order:
+        st.session_state.chat_session_order.insert(0, thread_id)
 
 
 def get_or_create_user_id() -> str:
@@ -53,6 +95,34 @@ def get_or_create_user_id() -> str:
     return user_id
 
 
+def get_agent_url() -> str:
+    agent_url = os.getenv("AGENT_URL")
+    if agent_url:
+        return agent_url
+    host = os.getenv("HOST", "0.0.0.0")
+    port = os.getenv("PORT", 8080)
+    return f"http://{host}:{port}"
+
+
+def render_login(agent_url: str) -> None:
+    st.markdown(f"## {APP_ICON} {APP_TITLE}")
+    st.caption("请登录后继续使用")
+
+    auth_client = AgentClient(base_url=agent_url, get_info=False)
+    with st.form("login-form"):
+        username = st.text_input("用户名", key="login-username")
+        password = st.text_input("密码", type="password", key="login-password")
+        submitted = st.form_submit_button("登录", use_container_width=True)
+    if submitted:
+        try:
+            response = auth_client.login(username, password)
+        except AgentClientError as e:
+            st.error(str(e))
+        else:
+            st.session_state.auth_user = response.user.model_dump()
+            st.rerun()
+
+
 async def main() -> None:
     st.set_page_config(
         page_title=APP_TITLE,
@@ -77,22 +147,23 @@ async def main() -> None:
         await asyncio.sleep(0.1)
         st.rerun()
 
-    # Get or create user ID
-    user_id = get_or_create_user_id()
+    load_dotenv()
+    agent_url = get_agent_url()
+    if "auth_user" not in st.session_state:
+        render_login(agent_url)
+        st.stop()
+
+    user_id = st.session_state.auth_user["id"]
+    st.session_state[USER_ID_COOKIE] = user_id
+    st.query_params[USER_ID_COOKIE] = user_id
 
     if "agent_client" not in st.session_state:
-        load_dotenv()
-        agent_url = os.getenv("AGENT_URL")
-        if not agent_url:
-            host = os.getenv("HOST", "0.0.0.0")
-            port = os.getenv("PORT", 8080)
-            agent_url = f"http://{host}:{port}"
         try:
-            with st.spinner("Connecting to agent service..."):
+            with st.spinner("正在连接智能体服务..."):
                 st.session_state.agent_client = AgentClient(base_url=agent_url)
         except AgentClientError as e:
-            st.error(f"Error connecting to agent service at {agent_url}: {e}")
-            st.markdown("The service might be booting up. Try again in a few seconds.")
+            st.error(f"连接智能体服务失败：{agent_url}，错误信息：{e}")
+            st.markdown("服务可能仍在启动中，请稍等几秒后重试。")
             st.stop()
     agent_client: AgentClient = st.session_state.agent_client
 
@@ -110,44 +181,86 @@ async def main() -> None:
             try:
                 messages: ChatHistory = agent_client.get_history(thread_id=thread_id).messages
             except AgentClientError:
-                st.error("No message history found for this Thread ID.")
+                st.error("未找到此对话 ID 对应的历史消息。")
                 messages = []
         st.session_state.messages = messages
         st.session_state.thread_id = thread_id
+        save_current_chat()
 
     # Config options
     with st.sidebar:
         st.header(f"{APP_ICON} {APP_TITLE}")
+        st.caption(f"当前用户：{st.session_state.auth_user['username']}")
+        if st.button(":material/logout: 退出登录", use_container_width=True):
+            for key in [
+                "auth_user",
+                "agent_client",
+                "messages",
+                "thread_id",
+                "chat_sessions",
+                "chat_session_order",
+                "chat_session_meta",
+                "last_audio",
+            ]:
+                st.session_state.pop(key, None)
+            st.rerun()
 
-        ""
-        "Full toolkit for running an AI agent service built with LangGraph, FastAPI and Streamlit"
-        ""
-
-        if st.button(":material/chat: New Chat", use_container_width=True):
+        if st.button(":material/chat: 新建对话", use_container_width=True):
+            save_current_chat()
             st.session_state.messages = []
             st.session_state.thread_id = str(uuid.uuid4())
+            st.query_params["thread_id"] = st.session_state.thread_id
             # Clear saved audio when starting new chat
             if "last_audio" in st.session_state:
                 del st.session_state.last_audio
+            save_current_chat()
             st.rerun()
 
-        with st.popover(":material/settings: Settings", use_container_width=True):
+        with st.popover(":material/history: 对话历史", use_container_width=True):
+            save_current_chat()
+            cutoff = time.time() - 7 * 24 * 60 * 60
+            recent_thread_ids = [
+                saved_thread_id
+                for saved_thread_id in st.session_state.get("chat_session_order", [])
+                if st.session_state.get("chat_session_meta", {})
+                .get(saved_thread_id, {})
+                .get("updated_at", 0)
+                >= cutoff
+            ]
+            if not recent_thread_ids:
+                st.caption("最近一周暂无对话")
+            for saved_thread_id in recent_thread_ids:
+                saved_messages = st.session_state.chat_sessions.get(saved_thread_id, [])
+                meta = st.session_state.chat_session_meta.get(saved_thread_id, {})
+                title = meta.get("title") or get_chat_title(saved_messages)
+                is_current = saved_thread_id == st.session_state.thread_id
+                label = f":material/check: {title}" if is_current else title
+                if st.button(label, key=f"history-{saved_thread_id}", use_container_width=True):
+                    save_current_chat()
+                    st.session_state.thread_id = saved_thread_id
+                    st.session_state.messages = list(saved_messages)
+                    st.query_params["thread_id"] = saved_thread_id
+                    if "last_audio" in st.session_state:
+                        del st.session_state.last_audio
+                    st.rerun()
+
+        with st.popover(":material/settings: 设置", use_container_width=True):
             model_idx = agent_client.info.models.index(agent_client.info.default_model)
-            model = st.selectbox("LLM to use", options=agent_client.info.models, index=model_idx)
+            model = st.selectbox("选择大语言模型", options=agent_client.info.models, index=model_idx)
             agent_list = [a.key for a in agent_client.info.agents]
             agent_idx = agent_list.index(agent_client.info.default_agent)
             agent_client.agent = st.selectbox(
-                "Agent to use",
+                "选择智能体",
                 options=agent_list,
                 index=agent_idx,
             )
-            use_streaming = st.toggle("Stream results", value=True)
+            use_streaming = st.toggle("流式输出", value=True)
             # Audio toggle with callback: clears cached audio when toggled off
             enable_audio = st.toggle(
-                "Enable audio generation",
+                "启用语音生成",
                 value=True,
                 disabled=not voice or not voice.tts,
-                help="Configure VOICE_TTS_PROVIDER in .env to enable"
+                help="在 .env 中配置 VOICE_TTS_PROVIDER 后可启用"
                 if not voice or not voice.tts
                 else None,
                 on_change=lambda: st.session_state.pop("last_audio", None)
@@ -157,49 +270,7 @@ async def main() -> None:
             )
 
             # Display user ID (for debugging or user information)
-            st.text_input("User ID (read-only)", value=user_id, disabled=True)
-
-        @st.dialog("Architecture")
-        def architecture_dialog() -> None:
-            st.image(
-                "https://github.com/JoshuaC215/agent-service-toolkit/blob/main/media/agent_architecture.png?raw=true"
-            )
-            "[View full size on Github](https://github.com/JoshuaC215/agent-service-toolkit/blob/main/media/agent_architecture.png)"
-            st.caption(
-                "App hosted on [Streamlit Cloud](https://share.streamlit.io/) with FastAPI service running in [Azure](https://learn.microsoft.com/en-us/azure/app-service/)"
-            )
-
-        if st.button(":material/schema: Architecture", use_container_width=True):
-            architecture_dialog()
-
-        with st.popover(":material/policy: Privacy", use_container_width=True):
-            st.write(
-                "Prompts, responses and feedback in this app are anonymously recorded and saved to LangSmith for product evaluation and improvement purposes only."
-            )
-
-        @st.dialog("Share/resume chat")
-        def share_chat_dialog() -> None:
-            session = st.runtime.get_instance()._session_mgr.list_active_sessions()[0]
-            st_base_url = urllib.parse.urlunparse(
-                [session.client.request.protocol, session.client.request.host, "", "", "", ""]
-            )
-            # if it's not localhost, switch to https by default
-            if not st_base_url.startswith("https") and "localhost" not in st_base_url:
-                st_base_url = st_base_url.replace("http", "https")
-            # Include both thread_id and user_id in the URL for sharing to maintain user identity
-            chat_url = (
-                f"{st_base_url}?thread_id={st.session_state.thread_id}&{USER_ID_COOKIE}={user_id}"
-            )
-            st.markdown(f"**Chat URL:**\n```text\n{chat_url}\n```")
-            st.info("Copy the above URL to share or revisit this chat")
-
-        if st.button(":material/upload: Share/resume chat", use_container_width=True):
-            share_chat_dialog()
-
-        "[View the source code](https://github.com/JoshuaC215/agent-service-toolkit)"
-        st.caption(
-            "Made with :material/favorite: by [Joshua](https://www.linkedin.com/in/joshua-k-carroll/) in Oakland"
-        )
+            st.text_input("用户 ID（只读）", value=user_id, disabled=True)
 
     # Draw existing messages
     messages: list[ChatMessage] = st.session_state.messages
@@ -207,16 +278,16 @@ async def main() -> None:
     if len(messages) == 0:
         match agent_client.agent:
             case "chatbot":
-                WELCOME = "Hello! I'm a simple chatbot. Ask me anything!"
+                WELCOME = "你好！我是一个简单的聊天机器人，可以问我任何问题。"
             case "interrupt-agent":
-                WELCOME = "Hello! I'm an interrupt agent. Tell me your birthday and I will predict your personality!"
+                WELCOME = "你好！我是一个支持中断流程的智能体。告诉我你的生日，我可以为你预测性格。"
             case "research-assistant":
-                WELCOME = "Hello! I'm an AI-powered research assistant with web search and a calculator. Ask me anything!"
+                WELCOME = "你好！我是 AI 研究助手，支持网页搜索和计算器。可以问我任何问题。"
             case "rag-assistant":
-                WELCOME = """Hello! I'm an AI-powered Company Policy & HR assistant with access to AcmeTech's Employee Handbook.
-                I can help you find information about benefits, remote work, time-off policies, company values, and more. Ask me anything!"""
+                WELCOME = """你好！我是 AI 公司政策与人力资源助手，可以查询 AcmeTech 员工手册。
+                我可以帮你查找福利、远程办公、休假政策、公司价值观等信息。"""
             case _:
-                WELCOME = "Hello! I'm an AI agent. Ask me anything!"
+                WELCOME = "你好！我是 AI 智能体，可以问我任何问题。"
 
         with st.chat_message("ai"):
             st.write(WELCOME)
@@ -247,9 +318,9 @@ async def main() -> None:
     # REQUIRED: Set VOICE_STT_PROVIDER, VOICE_TTS_PROVIDER, OPENAI_API_KEY
     # in app .env (NOT service .env) to enable voice features.
     if voice:
-        user_input = voice.get_chat_input()
+        user_input = voice.get_chat_input("请输入你的问题")
     else:
-        user_input = st.chat_input()
+        user_input = st.chat_input("请输入你的问题")
 
     if user_input:
         messages.append(ChatMessage(type="human", content=user_input))
@@ -290,9 +361,10 @@ async def main() -> None:
                         voice.render_message(response.content)
                     else:
                         st.write(response.content)
+            save_current_chat()
             st.rerun()  # Clear stale containers
         except AgentClientError as e:
-            st.error(f"Error generating response: {e}")
+            st.error(f"生成回复失败：{e}")
             st.stop()
 
     # If messages have been generated, show feedback widget
@@ -347,10 +419,12 @@ async def draw_messages(
             streaming_content += msg
             streaming_placeholder.write(streaming_content)
             continue
-        if not isinstance(msg, ChatMessage):
-            st.error(f"Unexpected message type: {type(msg)}")
+        coerced_msg = coerce_chat_message(msg)
+        if coerced_msg is None:
+            st.error(f"收到不支持的消息类型：{type(msg)}")
             st.write(msg)
             st.stop()
+        msg = coerced_msg
 
         match msg.type:
             # A message from the user, the easiest case
@@ -389,9 +463,9 @@ async def draw_messages(
                         for tool_call in msg.tool_calls:
                             # Use different labels for transfer vs regular tool calls
                             if "transfer_to" in tool_call["name"]:
-                                label = f"""💼 Sub Agent: {tool_call["name"]}"""
+                                label = f"""子智能体：{tool_call["name"]}"""
                             else:
-                                label = f"""🛠️ Tool Call: {tool_call["name"]}"""
+                                label = f"""工具调用：{tool_call["name"]}"""
 
                             status = st.status(
                                 label,
@@ -409,13 +483,15 @@ async def draw_messages(
 
                             # Only non-transfer tool calls reach this point
                             status = call_results[tool_call["id"]]
-                            status.write("Input:")
+                            status.write("输入：")
                             status.write(tool_call["args"])
-                            tool_result: ChatMessage = await anext(messages_agen)
+                            tool_result_raw = await anext(messages_agen)
+                            tool_result = coerce_chat_message(tool_result_raw)
 
-                            if tool_result.type != "tool":
-                                st.error(f"Unexpected ChatMessage type: {tool_result.type}")
-                                st.write(tool_result)
+                            if tool_result is None or tool_result.type != "tool":
+                                message_type = getattr(tool_result_raw, "type", type(tool_result_raw))
+                                st.error(f"收到不支持的对话消息类型：{message_type}")
+                                st.write(tool_result_raw)
                                 st.stop()
 
                             # Record the message if it's new, and update the correct
@@ -424,7 +500,7 @@ async def draw_messages(
                                 st.session_state.messages.append(tool_result)
                             if tool_result.tool_call_id:
                                 status = call_results[tool_result.tool_call_id]
-                            status.write("Output:")
+                            status.write("输出：")
                             status.write(tool_result.content)
                             status.update(state="complete")
 
@@ -436,7 +512,7 @@ async def draw_messages(
                 try:
                     task_data: TaskData = TaskData.model_validate(msg.custom_data)
                 except ValidationError:
-                    st.error("Unexpected CustomData message received from agent")
+                    st.error("从智能体收到不支持的自定义数据消息")
                     st.write(msg.custom_data)
                     st.stop()
 
@@ -455,7 +531,7 @@ async def draw_messages(
 
             # In case of an unexpected message type, log an error and stop
             case _:
-                st.error(f"Unexpected ChatMessage type: {msg.type}")
+                st.error(f"收到不支持的对话消息类型：{msg.type}")
                 st.write(msg)
                 st.stop()
 
@@ -484,10 +560,10 @@ async def handle_feedback() -> None:
                 kwargs={"comment": "In-line human feedback"},
             )
         except AgentClientError as e:
-            st.error(f"Error recording feedback: {e}")
+            st.error(f"记录反馈失败：{e}")
             st.stop()
         st.session_state.last_feedback = (latest_run_id, feedback)
-        st.toast("Feedback recorded", icon=":material/reviews:")
+        st.toast("反馈已记录", icon=":material/reviews:")
 
 
 async def handle_sub_agent_msgs(messages_agen, status, is_new):
@@ -525,7 +601,7 @@ async def handle_sub_agent_msgs(messages_agen, status, is_new):
         # Handle tool results with nested popovers
         if sub_msg.type == "tool" and sub_msg.tool_call_id in nested_popovers:
             popover = nested_popovers[sub_msg.tool_call_id]
-            popover.write("**Output:**")
+            popover.write("**输出：**")
             popover.write(sub_msg.content)
             continue
 
@@ -559,7 +635,7 @@ async def handle_sub_agent_msgs(messages_agen, status, is_new):
                     if "transfer_to" in tc["name"]:
                         # Create a nested status container for the sub-agent
                         nested_status = status.status(
-                            f"""💼 Sub Agent: {tc["name"]}""",
+                            f"""子智能体：{tc["name"]}""",
                             state="running" if is_new else "complete",
                             expanded=True,
                         )
@@ -569,8 +645,8 @@ async def handle_sub_agent_msgs(messages_agen, status, is_new):
                     else:
                         # Regular tool call - create popover
                         popover = status.popover(f"{tc['name']}", icon="🛠️")
-                        popover.write(f"**Tool:** {tc['name']}")
-                        popover.write("**Input:**")
+                        popover.write(f"**工具：** {tc['name']}")
+                        popover.write("**输入：**")
                         popover.write(tc["args"])
                         # Store the popover reference using the tool call ID
                         nested_popovers[tc["id"]] = popover

@@ -103,7 +103,7 @@ class VoiceManager:
 
         return transcribed
 
-    def get_chat_input(self, placeholder: str = "Your message") -> str | None:
+    def get_chat_input(self, placeholder: str = "请输入你的问题") -> str | None:
         """Get chat input with optional voice transcription.
 
         Handles Streamlit UI including audio input widget and transcription

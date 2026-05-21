@@ -6,6 +6,8 @@ from typing import Any
 import httpx
 
 from schema import (
+    AuthRequest,
+    AuthResponse,
     ChatHistory,
     ChatHistoryInput,
     ChatMessage,
@@ -82,6 +84,23 @@ class AgentClient:
                     f"Agent {agent} not found in available agents: {', '.join(agent_keys)}"
                 )
         self.agent = agent
+
+    def login(self, username: str, password: str) -> AuthResponse:
+        request = AuthRequest(username=username, password=password)
+        try:
+            response = httpx.post(
+                f"{self.base_url}/auth/login",
+                json=request.model_dump(),
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 401:
+                raise AgentClientError("用户名或密码错误")
+            raise AgentClientError(f"登录失败：{e}")
+        except httpx.HTTPError as e:
+            raise AgentClientError(f"登录失败：{e}")
+        return AuthResponse.model_validate(response.json())
 
     async def ainvoke(
         self,

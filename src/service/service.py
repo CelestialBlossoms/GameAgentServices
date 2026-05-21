@@ -25,7 +25,11 @@ from langsmith import uuid7
 from agents import DEFAULT_AGENT, AgentGraph, get_agent, get_all_agent_info, load_agent
 from core import settings
 from memory import initialize_database, initialize_store
+from memory.users import authenticate_user, setup_users_table
 from schema import (
+    AuthRequest,
+    AuthResponse,
+    AuthUser,
     ChatHistory,
     ChatHistoryInput,
     ChatMessage,
@@ -72,6 +76,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         # Initialize both checkpointer (for short-term memory) and store (for long-term memory)
         async with initialize_database() as saver, initialize_store() as store:
+            await setup_users_table()
             # Set up both components
             if hasattr(saver, "setup"):  # ignore: union-attr
                 await saver.setup()
@@ -102,6 +107,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(lifespan=lifespan, generate_unique_id_function=custom_generate_unique_id)
 router = APIRouter(dependencies=[Depends(verify_bearer)])
+
+
+@app.post("/auth/login")
+async def login(input: AuthRequest) -> AuthResponse:
+    user = await authenticate_user(input.username, input.password)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    return AuthResponse(user=AuthUser(**user))
 
 
 @router.get("/info")
