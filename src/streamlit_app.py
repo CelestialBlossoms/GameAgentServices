@@ -247,13 +247,15 @@ async def main() -> None:
         with st.popover(":material/settings: 设置", use_container_width=True):
             model_idx = agent_client.info.models.index(agent_client.info.default_model)
             model = st.selectbox("选择大语言模型", options=agent_client.info.models, index=model_idx)
-            agent_list = [a.key for a in agent_client.info.agents]
-            agent_idx = agent_list.index(agent_client.info.default_agent)
-            agent_client.agent = st.selectbox(
+            agent_names = [a.name or a.key for a in agent_client.info.agents]
+            agent_keys = [a.key for a in agent_client.info.agents]
+            agent_idx = agent_keys.index(agent_client.info.default_agent)
+            selected_name = st.selectbox(
                 "选择智能体",
-                options=agent_list,
+                options=agent_names,
                 index=agent_idx,
             )
+            agent_client.agent = agent_keys[agent_names.index(selected_name)]
             use_streaming = st.toggle("流式输出", value=True)
             # Audio toggle with callback: clears cached audio when toggled off
             enable_audio = st.toggle(

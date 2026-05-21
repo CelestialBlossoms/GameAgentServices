@@ -8,17 +8,16 @@ from langchain_openai import OpenAIEmbeddings
 
 
 def calculator_func(expression: str) -> str:
-    """Calculates a math expression using numexpr.
+    """使用 numexpr 计算数学表达式。
 
-    Useful for when you need to answer questions about math using numexpr.
-    This tool is only for math questions and nothing else. Only input
-    math expressions.
+    适用于需要使用 numexpr 回答数学问题的情况。
+    此工具仅用于数学问题，不作他用。仅输入数学表达式。
 
-    Args:
-        expression (str): A valid numexpr formatted math expression.
+    参数:
+        expression (str): 有效的 numexpr 格式数学表达式。
 
-    Returns:
-        str: The result of the math expression.
+    返回:
+        str: 数学表达式的结果。
     """
 
     try:
@@ -26,8 +25,8 @@ def calculator_func(expression: str) -> str:
         output = str(
             numexpr.evaluate(
                 expression.strip(),
-                global_dict={},  # restrict access to globals
-                local_dict=local_dict,  # add common mathematical functions
+                global_dict={},  # 限制对全局变量的访问
+                local_dict=local_dict,  # 添加常用的数学函数
             )
         )
         return re.sub(r"^\[|\]$", "", output)
@@ -42,13 +41,13 @@ calculator: BaseTool = tool(calculator_func)
 calculator.name = "Calculator"
 
 
-# Format retrieved documents
+# 格式化检索到的文档
 def format_contexts(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
 
 def load_chroma_db():
-    # Create the embedding function for our project description database
+    # 为我们的项目描述数据库创建嵌入函数
     try:
         embeddings = OpenAIEmbeddings()
     except Exception as e:
@@ -56,25 +55,26 @@ def load_chroma_db():
             "Failed to initialize OpenAIEmbeddings. Ensure the OpenAI API key is set."
         ) from e
 
-    # Load the stored vector database
+    # 加载存储的向量数据库
     chroma_db = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
     retriever = chroma_db.as_retriever(search_kwargs={"k": 5})
     return retriever
 
 
 def database_search_func(query: str) -> str:
-    """Searches chroma_db for information in the company's handbook."""
-    # Get the chroma retriever
+    """在公司手册中搜索 chroma_db 信息。"""
+    # 获取 chroma 检索器
     retriever = load_chroma_db()
 
-    # Search the database for relevant documents
+    # 在数据库中搜索相关文档
     documents = retriever.invoke(query)
 
-    # Format the documents into a string
+    # 将文档格式化为字符串
     context_str = format_contexts(documents)
 
     return context_str
 
 
 database_search: BaseTool = tool(database_search_func)
-database_search.name = "Database_Search"  # Update name with the purpose of your database
+database_search.name = "Database_Search"  # 根据数据库的用途更新名称
+

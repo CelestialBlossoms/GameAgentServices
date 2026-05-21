@@ -113,7 +113,7 @@ router = APIRouter(dependencies=[Depends(verify_bearer)])
 async def login(input: AuthRequest) -> AuthResponse:
     user = await authenticate_user(input.username, input.password)
     if user is None:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
     return AuthResponse(user=AuthUser(**user))
 
 
@@ -224,7 +224,7 @@ async def invoke(user_input: UserInput, agent_id: str = DEFAULT_AGENT) -> ChatMe
         return output
     except Exception as e:
         logger.error(f"An exception occurred: {e}")
-        raise HTTPException(status_code=500, detail="Unexpected error")
+        raise HTTPException(status_code=500, detail="未知错误")
 
 
 async def message_generator(
@@ -310,7 +310,7 @@ async def message_generator(
                     chat_message.run_id = str(run_id)
                 except Exception as e:
                     logger.error(f"Error parsing message: {e}")
-                    yield f"data: {json.dumps({'type': 'error', 'content': 'Unexpected error'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'error', 'content': '未知错误'})}\n\n"
                     continue
                 # LangGraph re-sends the input message, which feels weird, so drop it
                 if chat_message.type == "human" and chat_message.content == user_input.message:
@@ -335,7 +335,7 @@ async def message_generator(
                     yield f"data: {json.dumps({'type': 'token', 'content': convert_message_content_to_string(content)})}\n\n"
     except Exception as e:
         logger.error(f"Error in message generator: {e}")
-        yield f"data: {json.dumps({'type': 'error', 'content': 'Internal server error'})}\n\n"
+        yield f"data: {json.dumps({'type': 'error', 'content': '内部服务器错误'})}\n\n"
     finally:
         yield "data: [DONE]\n\n"
 
@@ -421,7 +421,7 @@ async def history(input: ChatHistoryInput) -> ChatHistory:
         return ChatHistory(messages=chat_messages)
     except Exception as e:
         logger.error(f"An exception occurred: {e}")
-        raise HTTPException(status_code=500, detail="Unexpected error")
+        raise HTTPException(status_code=500, detail="未知错误")
 
 
 @app.get("/health")

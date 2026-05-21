@@ -13,6 +13,11 @@ class AgentInfo(BaseModel):
         description="Agent key.",
         examples=["research-assistant"],
     )
+    name: str = Field(
+        default="",
+        description="Display name of the agent.",
+        examples=["研究助手"],
+    )
     description: str = Field(
         description="Description of the agent.",
         examples=["A research assistant for generating research papers."],

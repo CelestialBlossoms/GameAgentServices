@@ -16,9 +16,9 @@ class SafetyAssessment(Enum):
 
 
 class SafeguardOutput(BaseModel):
-    safety_assessment: SafetyAssessment = Field(description="The safety assessment of the content.")
+    safety_assessment: SafetyAssessment = Field(description="内容的安全评估。")
     unsafe_categories: list[str] = Field(
-        description="If content is unsafe, the list of unsafe categories.", default=[]
+        description="如果内容不安全，则列出不安全类别列表。", default=[]
     )
 
 
@@ -100,7 +100,7 @@ class Safeguard:
 
     def _compile_messages(self, messages: list[AnyMessage]) -> list[AnyMessage]:
         role_mapping = {"ai": "Agent", "human": "User"}
-        # Create a formatted history string to evaluate
+        # 创建格式化的历史记录字符串以进行评估
         messages_str = [
             f"{role_mapping[m.type]}: {m.content}" for m in messages if m.type in ["ai", "human"]
         ]

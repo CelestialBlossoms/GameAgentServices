@@ -89,16 +89,16 @@ class VoiceManager:
         """
         # Defensive check (should not happen if called correctly)
         if not self.stt:
-            st.error("⚠️ Speech-to-text not configured.")
+            st.error("⚠️ 语音转文本未配置。")
             return None
 
         # Show spinner while transcribing
-        with st.spinner("🎤 Transcribing audio..."):
+        with st.spinner("🎤 正在转录音频..."):
             transcribed = self.stt.transcribe(audio)
 
         # Check if transcription succeeded
         if not transcribed:
-            st.error("⚠️ Transcription failed. Please try again or type your message.")
+            st.error("⚠️ 转录失败，请重试或直接输入文字。")
             return None
 
         return transcribed
@@ -178,7 +178,7 @@ class VoiceManager:
             # Show placeholder while generating audio
             placeholder = container.empty()
             with placeholder:
-                st.caption("🎙️ Generating audio...")
+                st.caption("🎙️ 正在生成音频...")
 
             # Generate TTS audio
             audio = self.tts.generate(content)
@@ -192,4 +192,4 @@ class VoiceManager:
             if audio:
                 placeholder.audio(audio, format=self.tts.get_format())
             else:
-                placeholder.caption("🔇 Audio generation unavailable")
+                placeholder.caption("🔇 音频生成不可用")

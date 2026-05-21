@@ -16,9 +16,9 @@ from core import get_model, settings
 
 
 class AgentState(MessagesState, total=False):
-    """`total=False` is PEP589 specs.
+    """`total=False` 符合 PEP589 规范。
 
-    documentation: https://typing.readthedocs.io/en/latest/spec/typeddict.html#totality
+    文档：https://typing.readthedocs.io/en/latest/spec/typeddict.html#totality
     """
 
     safety: SafeguardOutput
@@ -28,8 +28,8 @@ class AgentState(MessagesState, total=False):
 web_search = DuckDuckGoSearchResults(name="WebSearch")
 tools = [web_search, calculator]
 
-# Add weather tool if API key is set
-# Register for an API key at https://openweathermap.org/api/
+# 如果设置了 API 密钥，则添加天气工具
+# 在 https://openweathermap.org/api/ 注册 API 密钥
 if settings.OPENWEATHERMAP_API_KEY:
     wrapper = OpenWeatherMapAPIWrapper(
         openweathermap_api_key=settings.OPENWEATHERMAP_API_KEY.get_secret_value()
@@ -81,7 +81,7 @@ async def acall_model(state: AgentState, config: RunnableConfig) -> AgentState:
                 )
             ]
         }
-    # We return a list, because this will get added to the existing list
+    # 我们返回一个列表，因为这将被添加到现有列表中
     return {"messages": [response]}
 
 
@@ -96,7 +96,7 @@ async def block_unsafe_content(state: AgentState, config: RunnableConfig) -> Age
     return {"messages": [format_safety_message(safety)]}
 
 
-# Define the graph
+# 定义图
 agent = StateGraph(AgentState)
 agent.add_node("model", acall_model)
 agent.add_node("tools", ToolNode(tools))
@@ -105,7 +105,7 @@ agent.add_node("block_unsafe_content", block_unsafe_content)
 agent.set_entry_point("guard_input")
 
 
-# Check for unsafe input and block further processing if found
+# 检查是否存在不安全输入，如果发现则阻止进一步处理
 def check_safety(state: AgentState) -> Literal["unsafe", "safe"]:
     safety: SafeguardOutput = state["safety"]
     match safety.safety_assessment:
@@ -119,14 +119,14 @@ agent.add_conditional_edges(
     "guard_input", check_safety, {"unsafe": "block_unsafe_content", "safe": "model"}
 )
 
-# Always END after blocking unsafe content
+# 阻止不安全内容后始终结束 (END)
 agent.add_edge("block_unsafe_content", END)
 
-# Always run "model" after "tools"
+# 在 "tools" 之后始终运行 "model"
 agent.add_edge("tools", "model")
 
 
-# After "model", if there are tool calls, run "tools". Otherwise END.
+# 在 "model" 之后，如果有工具调用，则运行 "tools"。否则结束 (END)。
 def pending_tool_calls(state: AgentState) -> Literal["tools", "done"]:
     last_message = state["messages"][-1]
     if not isinstance(last_message, AIMessage):

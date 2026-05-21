@@ -68,7 +68,7 @@ class AgentClient:
             )
             response.raise_for_status()
         except httpx.HTTPError as e:
-            raise AgentClientError(f"Error getting service info: {e}")
+            raise AgentClientError(f"获取服务信息失败：{e}")
 
         self.info = ServiceMetadata.model_validate(response.json())
         if not self.agent or self.agent not in [a.key for a in self.info.agents]:
@@ -81,7 +81,7 @@ class AgentClient:
             agent_keys = [a.key for a in self.info.agents]  # type: ignore[union-attr]
             if agent not in agent_keys:
                 raise AgentClientError(
-                    f"Agent {agent} not found in available agents: {', '.join(agent_keys)}"
+                    f"未找到智能体 {agent}，可用智能体：{', '.join(agent_keys)}"
                 )
         self.agent = agent
 
@@ -124,7 +124,7 @@ class AgentClient:
             AnyMessage: The response from the agent
         """
         if not self.agent:
-            raise AgentClientError("No agent selected. Use update_agent() to select an agent.")
+            raise AgentClientError("未选择智能体，请使用 update_agent() 选择智能体。")
         request = UserInput(message=message)
         if thread_id:
             request.thread_id = thread_id
@@ -144,7 +144,7 @@ class AgentClient:
                 )
                 response.raise_for_status()
             except httpx.HTTPError as e:
-                raise AgentClientError(f"Error: {e}")
+                raise AgentClientError(f"错误：{e}")
 
         return ChatMessage.model_validate(response.json())
 
@@ -170,7 +170,7 @@ class AgentClient:
             ChatMessage: The response from the agent
         """
         if not self.agent:
-            raise AgentClientError("No agent selected. Use update_agent() to select an agent.")
+            raise AgentClientError("未选择智能体，请使用 update_agent() 选择智能体。")
         request = UserInput(message=message)
         if thread_id:
             request.thread_id = thread_id
@@ -202,19 +202,19 @@ class AgentClient:
             try:
                 parsed = json.loads(data)
             except Exception as e:
-                raise Exception(f"Error JSON parsing message from server: {e}")
+                raise Exception(f"解析服务器消息 JSON 失败：{e}")
             match parsed["type"]:
                 case "message":
                     # Convert the JSON formatted message to an AnyMessage
                     try:
                         return ChatMessage.model_validate(parsed["content"])
                     except Exception as e:
-                        raise Exception(f"Server returned invalid message: {e}")
+                        raise Exception(f"服务器返回无效消息：{e}")
                 case "token":
                     # Yield the str token directly
                     return parsed["content"]
                 case "error":
-                    error_msg = "Error: " + parsed["content"]
+                    error_msg = "错误：" + parsed["content"]
                     return ChatMessage(type="ai", content=error_msg)
         return None
 
@@ -247,7 +247,7 @@ class AgentClient:
             Generator[ChatMessage | str, None, None]: The response from the agent
         """
         if not self.agent:
-            raise AgentClientError("No agent selected. Use update_agent() to select an agent.")
+            raise AgentClientError("未选择智能体，请使用 update_agent() 选择智能体。")
         request = StreamInput(message=message, stream_tokens=stream_tokens)
         if thread_id:
             request.thread_id = thread_id
@@ -304,7 +304,7 @@ class AgentClient:
             AsyncGenerator[ChatMessage | str, None]: The response from the agent
         """
         if not self.agent:
-            raise AgentClientError("No agent selected. Use update_agent() to select an agent.")
+            raise AgentClientError("未选择智能体，请使用 update_agent() 选择智能体。")
         request = StreamInput(message=message, stream_tokens=stream_tokens)
         if thread_id:
             request.thread_id = thread_id
@@ -333,7 +333,7 @@ class AgentClient:
                             if parsed != "":
                                 yield parsed
             except httpx.HTTPError as e:
-                raise AgentClientError(f"Error: {e}")
+                raise AgentClientError(f"错误：{e}")
 
     async def acreate_feedback(
         self, run_id: str, key: str, score: float, kwargs: dict[str, Any] = {}
@@ -357,7 +357,7 @@ class AgentClient:
                 response.raise_for_status()
                 response.json()
             except httpx.HTTPError as e:
-                raise AgentClientError(f"Error: {e}")
+                raise AgentClientError(f"错误：{e}")
 
     def get_history(self, thread_id: str) -> ChatHistory:
         """

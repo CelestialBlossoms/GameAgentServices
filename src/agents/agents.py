@@ -18,74 +18,87 @@ from schema import AgentInfo
 
 DEFAULT_AGENT = "research-assistant"
 
-# Type alias to handle LangGraph's different agent patterns
-# - @entrypoint functions return Pregel
-# - StateGraph().compile() returns CompiledStateGraph
-AgentGraph = CompiledStateGraph | Pregel  # What get_agent() returns (always loaded)
-AgentGraphLike = CompiledStateGraph | Pregel | LazyLoadingAgent  # What can be stored in registry
+# 类型别名，用于处理 LangGraph 的不同智能体模式
+# - @entrypoint 函数返回 Pregel
+# - StateGraph().compile() 返回 CompiledStateGraph
+AgentGraph = CompiledStateGraph | Pregel  # get_agent() 的返回类型（始终已加载）
+AgentGraphLike = CompiledStateGraph | Pregel | LazyLoadingAgent  # 可存储在注册表中的类型
 
 
 @dataclass
 class Agent:
     description: str
-    graph_like: AgentGraphLike
+    name: str = ""
+    graph_like: AgentGraphLike | None = None
+
+    def __post_init__(self) -> None:
+        if not self.name:
+            self.name = self.description
 
 
 agents: dict[str, Agent] = {
-    "chatbot": Agent(description="A simple chatbot.", graph_like=chatbot),
+    "chatbot": Agent(description="一个简单的聊天机器人。", name="聊天机器人", graph_like=chatbot),
     "research-assistant": Agent(
-        description="A research assistant with web search and calculator.",
+        description="支持网页搜索和计算器的 AI 研究助手。",
+        name="研究助手",
         graph_like=research_assistant,
     ),
     "rag-assistant": Agent(
-        description="A RAG assistant with access to information in a database.",
+        description="RAG 知识库助手，可查询企业内部文档。",
+        name="RAG 知识库助手",
         graph_like=rag_assistant,
     ),
-    "command-agent": Agent(description="A command agent.", graph_like=command_agent),
-    "bg-task-agent": Agent(description="A background task agent.", graph_like=bg_task_agent),
+    "command-agent": Agent(description="命令执行智能体。", name="命令智能体", graph_like=command_agent),
+    "bg-task-agent": Agent(description="后台任务智能体。", name="后台任务", graph_like=bg_task_agent),
     "langgraph-supervisor-agent": Agent(
-        description="A langgraph supervisor agent", graph_like=langgraph_supervisor_agent
+        description="多智能体主管协调器",
+        name="主管智能体",
+        graph_like=langgraph_supervisor_agent,
     ),
     "langgraph-supervisor-hierarchy-agent": Agent(
-        description="A langgraph supervisor agent with a nested hierarchy of agents",
+        description="支持嵌套层级的多智能体主管",
+        name="层级主管智能体",
         graph_like=langgraph_supervisor_hierarchy_agent,
     ),
     "interrupt-agent": Agent(
-        description="An agent the uses interrupts.", graph_like=interrupt_agent
+        description="支持中断流程的智能体。", name="中断流程", graph_like=interrupt_agent
     ),
     "knowledge-base-agent": Agent(
-        description="A retrieval-augmented generation agent using Amazon Bedrock Knowledge Base",
+        description="基于 Amazon Bedrock 知识库的 RAG 智能体",
+        name="知识库检索",
         graph_like=kb_agent,
     ),
     "github-mcp-agent": Agent(
-        description="A GitHub agent with MCP tools for repository management and development workflows.",
+        description="集成 GitHub MCP 工具，支持仓库管理和开发工作流。",
+        name="GitHub 助手",
         graph_like=github_mcp_agent,
     ),
 }
 
 
 async def load_agent(agent_id: str) -> None:
-    """Load lazy agents if needed."""
+    """根据需要加载延迟加载的智能体。"""
     graph_like = agents[agent_id].graph_like
     if isinstance(graph_like, LazyLoadingAgent):
         await graph_like.load()
 
 
 def get_agent(agent_id: str) -> AgentGraph:
-    """Get an agent graph, loading lazy agents if needed."""
+    """获取智能体图，根据需要加载延迟加载的智能体。"""
     agent_graph = agents[agent_id].graph_like
 
-    # If it's a lazy loading agent, ensure it's loaded and return its graph
+    # 如果是延迟加载智能体，确保它已加载并返回其图
     if isinstance(agent_graph, LazyLoadingAgent):
         if not agent_graph._loaded:
             raise RuntimeError(f"Agent {agent_id} not loaded. Call load() first.")
         return agent_graph.get_graph()
 
-    # Otherwise return the graph directly
+    # 否则直接返回图
     return agent_graph
 
 
 def get_all_agent_info() -> list[AgentInfo]:
     return [
-        AgentInfo(key=agent_id, description=agent.description) for agent_id, agent in agents.items()
+        AgentInfo(key=agent_id, name=agent.name, description=agent.description)
+        for agent_id, agent in agents.items()
     ]

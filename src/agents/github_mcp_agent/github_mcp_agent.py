@@ -1,4 +1,4 @@
-"""GitHub MCP Agent - An agent that uses GitHub MCP tools for repository management."""
+"""GitHub MCP 智能体 - 一个使用 GitHub MCP 工具进行仓库管理的智能体。"""
 
 import logging
 from datetime import datetime
@@ -41,7 +41,7 @@ NOTE: You have access to GitHub MCP tools that provide direct GitHub API access.
 
 
 class GitHubMCPAgent(LazyLoadingAgent):
-    """GitHub MCP Agent with async initialization."""
+    """具有异步初始化的 GitHub MCP 智能体。"""
 
     def __init__(self) -> None:
         super().__init__()
@@ -49,7 +49,7 @@ class GitHubMCPAgent(LazyLoadingAgent):
         self._mcp_client: MultiServerMCPClient | None = None
 
     async def load(self) -> None:
-        """Initialize the GitHub MCP agent by loading MCP tools."""
+        """通过加载 MCP 工具来初始化 GitHub MCP 智能体。"""
         if not settings.GITHUB_PAT:
             logger.info("GITHUB_PAT is not set, GitHub MCP agent will have no tools")
             self._mcp_tools = []
@@ -58,7 +58,7 @@ class GitHubMCPAgent(LazyLoadingAgent):
             return
 
         try:
-            # Initialize MCP client directly
+            # 直接初始化 MCP 客户端
             github_pat = settings.GITHUB_PAT.get_secret_value()
             connections = {
                 "github": StreamableHttpConnection(
@@ -73,7 +73,7 @@ class GitHubMCPAgent(LazyLoadingAgent):
             self._mcp_client = MultiServerMCPClient(connections)
             logger.info("MCP client initialized successfully")
 
-            # Get tools from the client
+            # 从客户端获取工具
             self._mcp_tools = await self._mcp_client.get_tools()
             logger.info(f"GitHub MCP agent initialized with {len(self._mcp_tools)} tools")
 
@@ -82,12 +82,12 @@ class GitHubMCPAgent(LazyLoadingAgent):
             self._mcp_tools = []
             self._mcp_client = None
 
-        # Create and store the graph
+        # 创建并存储图
         self._graph = self._create_graph()
         self._loaded = True
 
     def _create_graph(self) -> CompiledStateGraph:
-        """Create the GitHub MCP agent graph."""
+        """创建 GitHub MCP 智能体图。"""
         model = get_model(settings.DEFAULT_MODEL)
 
         return create_agent(
@@ -98,5 +98,5 @@ class GitHubMCPAgent(LazyLoadingAgent):
         )
 
 
-# Create the agent instance
+# 创建智能体实例
 github_mcp_agent = GitHubMCPAgent()
