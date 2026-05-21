@@ -8,7 +8,13 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/info"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=5).read()",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -41,7 +47,13 @@ services:
     depends_on:
       - agent_service
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/healthz"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8501/healthz', timeout=5).read()",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
