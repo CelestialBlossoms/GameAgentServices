@@ -24,9 +24,10 @@ from voice import VoiceManager
 # The app heavily uses AgentClient to interact with the agent's FastAPI endpoints.
 
 
-APP_TITLE = "智能服务平台"
+APP_TITLE = "游戏 AI Agent 智能服务平台"
 APP_ICON = "✨"
 USER_ID_COOKIE = "user_id"
+THREAD_ID_PARAM = "thread_id"
 
 
 def coerce_chat_message(message: object) -> ChatMessage | None:
@@ -104,9 +105,14 @@ def get_agent_url() -> str:
     return f"http://{host}:{port}"
 
 
+def clear_query_param(name: str) -> None:
+    if name in st.query_params:
+        del st.query_params[name]
+
+
 def render_login(agent_url: str) -> None:
     st.markdown(f"## {APP_ICON} {APP_TITLE}")
-    st.caption("请登录后继续使用")
+    st.caption("登录后进入游戏 AI Agent 智能服务平台")
 
     auth_client = AgentClient(base_url=agent_url, get_info=False)
     with st.form("login-form"):
@@ -173,7 +179,7 @@ async def main() -> None:
     voice = st.session_state.voice_manager
 
     if "thread_id" not in st.session_state:
-        thread_id = st.query_params.get("thread_id")
+        thread_id = st.query_params.get(THREAD_ID_PARAM)
         if not thread_id:
             thread_id = str(uuid.uuid4())
             messages = []
@@ -181,7 +187,8 @@ async def main() -> None:
             try:
                 messages: ChatHistory = agent_client.get_history(thread_id=thread_id).messages
             except AgentClientError:
-                st.error("未找到此对话 ID 对应的历史消息。")
+                clear_query_param(THREAD_ID_PARAM)
+                thread_id = str(uuid.uuid4())
                 messages = []
         st.session_state.messages = messages
         st.session_state.thread_id = thread_id
@@ -203,13 +210,15 @@ async def main() -> None:
                 "last_audio",
             ]:
                 st.session_state.pop(key, None)
+            clear_query_param(THREAD_ID_PARAM)
+            clear_query_param(USER_ID_COOKIE)
             st.rerun()
 
         if st.button(":material/chat: 新建对话", use_container_width=True):
             save_current_chat()
             st.session_state.messages = []
             st.session_state.thread_id = str(uuid.uuid4())
-            st.query_params["thread_id"] = st.session_state.thread_id
+            clear_query_param(THREAD_ID_PARAM)
             # Clear saved audio when starting new chat
             if "last_audio" in st.session_state:
                 del st.session_state.last_audio
@@ -239,7 +248,7 @@ async def main() -> None:
                     save_current_chat()
                     st.session_state.thread_id = saved_thread_id
                     st.session_state.messages = list(saved_messages)
-                    st.query_params["thread_id"] = saved_thread_id
+                    st.query_params[THREAD_ID_PARAM] = saved_thread_id
                     if "last_audio" in st.session_state:
                         del st.session_state.last_audio
                     st.rerun()
@@ -280,16 +289,15 @@ async def main() -> None:
     if len(messages) == 0:
         match agent_client.agent:
             case "chatbot":
-                WELCOME = "你好！我是一个简单的聊天机器人，可以问我任何问题。"
+                WELCOME = "我是多功能 AI 服务助手，可以帮助您处理游戏运营、活动、道具、客服和配置相关问题。"
             case "interrupt-agent":
-                WELCOME = "你好！我是一个支持中断流程的智能体。告诉我你的生日，我可以为你预测性格。"
+                WELCOME = "我是多功能 AI 服务助手，可以帮助您处理游戏运营、活动、道具、客服和配置相关问题。"
             case "research-assistant":
-                WELCOME = "你好！我是 AI 研究助手，支持网页搜索和计算器。可以问我任何问题。"
+                WELCOME = "我是多功能 AI 服务助手，可以帮助您处理游戏运营、活动、道具、客服和配置相关问题。"
             case "rag-assistant":
-                WELCOME = """你好！我是 AI 公司政策与人力资源助手，可以查询 AcmeTech 员工手册。
-                我可以帮你查找福利、远程办公、休假政策、公司价值观等信息。"""
+                WELCOME = "我是多功能 AI 服务助手，可以帮助您处理游戏运营、活动、道具、客服和配置相关问题。"
             case _:
-                WELCOME = "你好！我是 AI 智能体，可以问我任何问题。"
+                WELCOME = "我是多功能 AI 服务助手，可以帮助您处理游戏运营、活动、道具、客服和配置相关问题。"
 
         with st.chat_message("ai"):
             st.write(WELCOME)
@@ -320,9 +328,9 @@ async def main() -> None:
     # REQUIRED: Set VOICE_STT_PROVIDER, VOICE_TTS_PROVIDER, OPENAI_API_KEY
     # in app .env (NOT service .env) to enable voice features.
     if voice:
-        user_input = voice.get_chat_input("请输入你的问题")
+        user_input = voice.get_chat_input("请输入游戏业务问题")
     else:
-        user_input = st.chat_input("请输入你的问题")
+        user_input = st.chat_input("请输入游戏业务问题")
 
     if user_input:
         messages.append(ChatMessage(type="human", content=user_input))
@@ -363,6 +371,7 @@ async def main() -> None:
                         voice.render_message(response.content)
                     else:
                         st.write(response.content)
+            st.query_params[THREAD_ID_PARAM] = st.session_state.thread_id
             save_current_chat()
             st.rerun()  # Clear stale containers
         except AgentClientError as e:

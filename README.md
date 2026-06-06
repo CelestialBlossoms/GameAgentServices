@@ -1,231 +1,220 @@
-# 🧰 AI Agent Service Toolkit
+# 🧰 AI Agent 服务工具箱
 
-[![build status](https://github.com/JoshuaC215/agent-service-toolkit/actions/workflows/test.yml/badge.svg)](https://github.com/JoshuaC215/agent-service-toolkit/actions/workflows/test.yml) [![codecov](https://codecov.io/github/JoshuaC215/agent-service-toolkit/graph/badge.svg?token=5MTJSYWD05)](https://codecov.io/github/JoshuaC215/agent-service-toolkit) [![Python Version](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2FJoshuaC215%2Fagent-service-toolkit%2Frefs%2Fheads%2Fmain%2Fpyproject.toml)](https://github.com/JoshuaC215/agent-service-toolkit/blob/main/pyproject.toml)
-[![GitHub License](https://img.shields.io/github/license/JoshuaC215/agent-service-toolkit)](https://github.com/JoshuaC215/agent-service-toolkit/blob/main/LICENSE) [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_red.svg)](https://agent-service-toolkit.streamlit.app/)
+这是一个用于运行基于 LangGraph、FastAPI 和 Streamlit 构建的 AI Agent 服务的完整工具箱。
 
-A full toolkit for running an AI agent service built with LangGraph, FastAPI and Streamlit.
+它包含一个 [LangGraph](https://langchain-ai.github.io/langgraph/) 智能体、一个用于提供服务的 [FastAPI](https://fastapi.tiangolo.com/) 服务端、一个用于与服务交互的客户端，以及一个使用该客户端提供聊天界面的 [Streamlit](https://streamlit.io/) 网页应用。数据结构和设置均使用 [Pydantic](https://github.com/pydantic/pydantic) 构建。
 
-It includes a [LangGraph](https://langchain-ai.github.io/langgraph/) agent, a [FastAPI](https://fastapi.tiangolo.com/) service to serve it, a client to interact with the service, and a [Streamlit](https://streamlit.io/) app that uses the client to provide a chat interface. Data structures and settings are built with [Pydantic](https://github.com/pydantic/pydantic).
+本项目为您提供了一个模板，方便您使用 LangGraph 框架轻松构建和运行自己的智能体。它演示了从智能体定义到用户界面的完整设置，通过提供完整、健壮的工具箱，让您可以更轻松地启动基于 LangGraph 的项目。
 
-This project offers a template for you to easily build and run your own agents using the LangGraph framework. It demonstrates a complete setup from agent definition to user interface, making it easier to get started with LangGraph-based projects by providing a full, robust toolkit.
+**[🎥 观看仓库和应用的代码导读视频](https://www.youtube.com/watch?v=pdYVHw_YCNY)**
 
-**[🎥 Watch a video walkthrough of the repo and app](https://www.youtube.com/watch?v=pdYVHw_YCNY)**
+## 概览
 
-## Overview
+### 运行截图
 
-### [Try the app!](https://agent-service-toolkit.streamlit.app/)
+<img src="media/app_screenshot.png" width="600">
 
-<a href="https://agent-service-toolkit.streamlit.app/"><img src="media/app_screenshot.png" width="600"></a>
+### 快速开始
 
-### Quickstart
-
-Run directly in python
+直接在 Python 中运行：
 
 ```sh
-# At least one LLM API key is required
+# 至少需要一个大模型（LLM）的 API 密钥
 echo 'OPENAI_API_KEY=your_openai_api_key' >> .env
 
-# uv is the recommended way to install agent-service-toolkit, but "pip install ." also works
-# For uv installation options, see: https://docs.astral.sh/uv/getting-started/installation/
+# 推荐使用 uv 来安装依赖，但 "pip install ." 同样适用
+# 有关 uv 的安装选项，请参阅：https://docs.astral.sh/uv/getting-started/installation/
 curl -LsSf https://astral.sh/uv/0.7.19/install.sh | sh
 
-# Install dependencies. "uv sync" creates .venv automatically
+# 安装依赖。"uv sync" 会自动创建 .venv
 uv sync --frozen
 source .venv/bin/activate
 python src/run_service.py
 
-# In another shell
+# 在另一个终端中
 source .venv/bin/activate
 streamlit run src/streamlit_app.py
 ```
 
-Run with docker
+使用 Docker 运行：
 
 ```sh
 echo 'OPENAI_API_KEY=your_openai_api_key' >> .env
 docker compose watch
 ```
 
-### Architecture Diagram
+### 架构图
 
 <img src="media/agent_architecture.png" width="600">
 
-### Key Features
+### 核心特性
 
-1. **LangGraph Agent and latest features**: A customizable agent built using the LangGraph framework. Implements the latest LangGraph v1.0 features including human in the loop with `interrupt()`, flow control with `Command`, long-term memory with `Store`, and `langgraph-supervisor`.
-1. **FastAPI Service**: Serves the agent with both streaming and non-streaming endpoints.
-1. **Advanced Streaming**: A novel approach to support both token-based and message-based streaming.
-1. **Streamlit Interface**: Provides a user-friendly chat interface for interacting with the agent, including voice input and output.
-1. **Multiple Agent Support**: Run multiple agents in the service and call by URL path. Available agents and models are described in `/info`
-1. **Asynchronous Design**: Utilizes async/await for efficient handling of concurrent requests.
-1. **Content Moderation**: Implements Safeguard for content moderation (requires Groq API key).
-1. **RAG Agent**: A basic RAG agent implementation using ChromaDB - see [docs](docs/RAG_Assistant.md).
-1. **Feedback Mechanism**: Includes a star-based feedback system integrated with LangSmith.
-1. **Docker Support**: Includes Dockerfiles and a docker compose file for easy development and deployment.
-1. **Testing**: Includes robust unit and integration tests for the full repo.
+1. **LangGraph 智能体及最新特性**：使用 LangGraph 框架构建的可自定义智能体。实现了最新的 LangGraph v1.0 特性，包括通过 `interrupt()` 实现的人机协同（Human-in-the-loop）、通过 `Command` 进行流程控制、使用 `Store` 实现的长期记忆，以及 `langgraph-supervisor`。
+2. **FastAPI 服务**：为智能体提供流式（Streaming）和非流式（Non-streaming）接口。
+3. **高级流式输出**：一种支持基于 Token 和基于 Message 的双重流式处理新方案。
+4. **Streamlit 界面**：提供用户友好的聊天界面以与智能体交互，包含语音输入和输出支持。
+5. **多智能体支持**：在服务中运行多个智能体，并通过 URL 路径调用。可用智能体和模型在 `/info` 中描述。
+6. **异步 design**：使用 async/await 关键字，高效处理并发请求。
+7. **内容审查**：集成 Safeguard 进行内容安全审查（需要 Groq API 密钥）。
+8. **RAG 智能体**：基于 ChromaDB 的基础 RAG 智能体实现 - 参见[文档](docs/RAG_Assistant.md)。
+9. **反馈机制**：包含与 LangSmith 集成的星级反馈系统。
+10. **Docker 支持**：包含 Dockerfile 和 docker-compose 文件，方便开发和部署。
+11. **测试**：包含针对整个仓库的单元测试和集成测试。
 
-### Key Files
+### 核心文件结构
 
-The repository is structured as follows:
+本仓库的结构如下：
 
-- `src/agents/`: Defines several agents with different capabilities
-- `src/schema/`: Defines the protocol schema
-- `src/core/`: Core modules including LLM definition and settings
-- `src/service/service.py`: FastAPI service to serve the agents
-- `src/client/client.py`: Client to interact with the agent service
-- `src/streamlit_app.py`: Streamlit app providing a chat interface
-- `tests/`: Unit and integration tests
+- `src/agents/`：定义了具有不同能力的多个智能体
+- `src/schema/`：定义了协议数据结构和 Schema
+- `src/core/`：核心模块，包含 LLM 定义 and 设置
+- `src/service/service.py`：用于提供智能体服务的 FastAPI 服务
+- `src/client/client.py`：与智能体服务交互的客户端
+- `src/streamlit_app.py`：提供聊天界面的 Streamlit 应用
+- `tests/`：单元测试和集成测试
 
-## Setup and Usage
+## 安装与使用
 
-1. Clone the repository:
+1. 克隆本仓库：
 
    ```sh
-   git clone https://github.com/JoshuaC215/agent-service-toolkit.git
+   git clone <your-repository-url>
    cd agent-service-toolkit
    ```
 
-2. Set up environment variables:
-   Create a `.env` file in the root directory. At least one LLM API key or configuration is required. See the [`.env.example` file](./.env.example) for a full list of available environment variables, including a variety of model provider API keys, header-based authentication, LangSmith tracing, testing and development modes, and OpenWeatherMap API key.
+2. 配置环境变量：
+   在根目录下创建一个 `.env` 文件。至少需要提供一个大模型（LLM）的 API 密钥或配置。请参考 [`.env.example` 文件](./.env.example) 获取完整的环境变量列表，其中包含多种模型供应商的 API 密钥、基于 Header 的认证配置、LangSmith 追踪、测试和开发模式，以及 OpenWeatherMap API 密钥。
 
-3. You can now run the agent service and the Streamlit app locally, either with Docker or just using Python. The Docker setup is recommended for simpler environment setup and immediate reloading of the services when you make changes to your code.
+3. 您现在可以在本地运行智能体服务和 Streamlit 应用（可以通过 Docker 或直接使用 Python）。推荐使用 Docker 设置，这样能简化环境配置，并在修改代码时自动重载服务。
 
-### Additional setup for specific AI providers
+### 针对特定 AI 供应商的附加配置
 
-- [Setting up Ollama](docs/Ollama.md)
-- [Setting up VertexAI](docs/VertexAI.md)
-- [Setting up RAG with ChromaDB](docs/RAG_Assistant.md)
+- [配置 Ollama](docs/Ollama.md)
+- [配置 VertexAI](docs/VertexAI.md)
+- [使用 ChromaDB 配置 RAG](docs/RAG_Assistant.md)
 
-### Building or customizing your own agent
+### 构建与自定义您自己的智能体
 
-To customize the agent for your own use case:
+要针对您自己的业务场景自定义智能体：
 
-1. Add your new agent to the `src/agents` directory. You can copy `research_assistant.py` or `chatbot.py` and modify it to change the agent's behavior and tools.
-1. Import and add your new agent to the `agents` dictionary in `src/agents/agents.py`. Your agent can be called by `/<your_agent_name>/invoke` or `/<your_agent_name>/stream`.
-1. Adjust the Streamlit interface in `src/streamlit_app.py` to match your agent's capabilities.
+1. 在 `src/agents` 目录下添加您新的智能体。您可以复制 `research_assistant.py` 或 `chatbot.py` 并进行修改，以改变智能体的行为和工具。
+2. 在 `src/agents/agents.py` 的 `agents` 字典中导入并添加您的新智能体。之后可以通过 `/<your_agent_name>/invoke` 或 `/<your_agent_name>/stream` 调用。
+3. 在 `src/streamlit_app.py` 中调整 Streamlit 界面，使其与您的智能体能力相匹配。
 
+### 隐私凭证文件处理
 
-### Handling Private Credential files
+如果您的智能体或所选的 LLM 需要基于文件的凭证文件或证书，我们提供了 `privatecredentials/` 目录以方便您开发。该目录下的所有内容（`.gitkeep` 文件除外）均已被 git 和 docker 的构建过程忽略。请参阅[使用基于文件的凭证](docs/File_Based_Credentials.md)了解建议的用法。
 
-If your agents or chosen LLM require file-based credential files or certificates, the `privatecredentials/` has been provided for your development convenience. All contents, excluding the `.gitkeep` files, are ignored by git and docker's build process. See [Working with File-based Credentials](docs/File_Based_Credentials.md) for suggested use.
+### Docker 配置
 
+本项目包含 Docker 配置，以便于开发和部署。`compose.yaml` 文件定义了三个服务：`postgres`、`agent_service` 和 `streamlit_app`。每个服务的 `Dockerfile` 都在其对应的目录中。
 
-### Docker Setup
+对于本地开发，我们建议使用 [docker compose watch](https://docs.docker.com/compose/file-watch/)。当检测到源代码发生变化时，它会自动更新您的容器，提供更顺畅的开发体验。
 
-This project includes a Docker setup for easy development and deployment. The `compose.yaml` file defines three services: `postgres`, `agent_service` and `streamlit_app`. The `Dockerfile` for each service is in their respective directories.
+1. 确保系统上已安装 Docker 和 Docker Compose (>= [v2.23.0](https://docs.docker.com/compose/release-notes/#2230))。
 
-For local development, we recommend using [docker compose watch](https://docs.docker.com/compose/file-watch/). This feature allows for a smoother development experience by automatically updating your containers when changes are detected in your source code.
-
-1. Make sure you have Docker and Docker Compose (>= [v2.23.0](https://docs.docker.com/compose/release-notes/#2230)) installed on your system.
-
-2. Create a `.env` file from the `.env.example`. At minimum, you need to provide an LLM API key (e.g., OPENAI_API_KEY).
+2. 从 `.env.example` 复制并创建 `.env` 文件。您至少需要提供一个 LLM API 密钥（例如 `OPENAI_API_KEY`）。
    ```sh
    cp .env.example .env
-   # Edit .env to add your API keys
+   # 编辑 .env 文件并添加您的 API 密钥
    ```
 
-3. Build and launch the services in watch mode:
+3. 在 watch 模式下构建并启动服务：
 
    ```sh
    docker compose watch
    ```
 
-   This will automatically:
-   - Start a PostgreSQL database service that the agent service connects to
-   - Start the agent service with FastAPI
-   - Start the Streamlit app for the user interface
+   这会自动：
+   - 启动智能体服务连接的 PostgreSQL 数据库服务
+   - 使用 FastAPI 启动智能体服务
+   - 启动用于用户界面的 Streamlit 应用
 
-4. The services will now automatically update when you make changes to your code:
-   - Changes in the relevant python files and directories will trigger updates for the relevant services.
-   - NOTE: If you make changes to the `pyproject.toml` or `uv.lock` files, you will need to rebuild the services by running `docker compose up --build`.
+4. 当您修改代码时，服务会自动更新：
+   - 相关 Python 文件和目录的更改将触发对应服务的更新。
+   - **注意**：如果您修改了 `pyproject.toml` 或 `uv.lock` 文件，需要通过运行 `docker compose up --build` 重新构建服务。
 
-5. Access the Streamlit app by navigating to `http://localhost:8501` in your web browser.
+5. 在 Web 浏览器中访问 `http://localhost:8501` 来使用 Streamlit 应用。
 
-6. The agent service API will be available at `http://0.0.0.0:8080`. You can also use the OpenAPI docs at `http://0.0.0.0:8080/redoc`.
+6. 智能体服务的 API 将在 `http://0.0.0.0:8080` 可用。您可以通过 `http://0.0.0.0:8080/redoc` 访问 OpenAPI 文档。
 
-7. Use `docker compose down` to stop the services.
+7. 使用 `docker compose down` 停止服务。
 
-This setup allows you to develop and test your changes in real-time without manually restarting the services.
+### 基于 AgentClient 开发其他应用
 
-### Building other apps on the AgentClient
+本仓库包含一个通用的 `src/client/client.AgentClient` 类，可用于与智能体服务进行交互。该客户端设计灵活，可用于在智能体服务之上构建其他应用。它支持同步和异步调用，以及流式和非流式请求。
 
-The repo includes a generic `src/client/client.AgentClient` that can be used to interact with the agent service. This client is designed to be flexible and can be used to build other apps on top of the agent. It supports both synchronous and asynchronous invocations, and streaming and non-streaming requests.
-
-See the `src/run_client.py` file for full examples of how to use the `AgentClient`. A quick example:
+有关如何使用 `AgentClient` 的完整示例，请参阅 `src/run_client.py` 文件。快速示例：
 
 ```python
 from client import AgentClient
 client = AgentClient()
 
-response = client.invoke("Tell me a brief joke?")
+response = client.invoke("给我讲个简短的笑话？")
 response.pretty_print()
-# ================================== Ai Message ==================================
-#
-# A man walked into a library and asked the librarian, "Do you have any books on Pavlov's dogs and Schrödinger's cat?"
-# The librarian replied, "It rings a bell, but I'm not sure if it's here or not."
-
 ```
 
-### Development with LangGraph Studio
+### 使用 LangGraph Studio 进行开发
 
-The agent supports [LangGraph Studio](https://langchain-ai.github.io/langgraph/concepts/langgraph_studio/), the IDE for developing agents in LangGraph.
+该智能体支持 [LangGraph Studio](https://langchain-ai.github.io/langgraph/concepts/langgraph_studio/)（LangGraph 智能体开发集成环境）。
 
-`langgraph-cli[inmem]` is installed with `uv sync`. You can simply add your `.env` file to the root directory as described above, and then launch LangGraph Studio with `langgraph dev`. Customize `langgraph.json` as needed. See the [local quickstart](https://langchain-ai.github.io/langgraph/cloud/how-tos/studio/quick_start/#local-development-server) to learn more.
+`langgraph-cli[inmem]` 已通过 `uv sync` 安装。您只需如上所述在根目录下添加 `.env` 文件，然后使用 `langgraph dev` 启动 LangGraph Studio。根据需要自定义 `langgraph.json`。请参阅[本地快速入门](https://langchain-ai.github.io/langgraph/cloud/how-tos/studio/quick_start/#local-development-server)了解更多信息。
 
-### Local development without Docker
+### 不使用 Docker 的本地开发
 
-You can also run the agent service and the Streamlit app locally without Docker, just using a Python virtual environment.
+您也可以仅使用 Python 虚拟环境或 Anaconda 环境，在本地运行智能体服务和 Streamlit 应用。
 
-1. Create a virtual environment and install dependencies:
+#### 方案 A：使用本地 Anaconda 环境（已配置的推荐环境）
+
+本项目已记录并推荐使用如下 Python 环境：
+- **Python 路径**：`D:\software\anaconda\envs\py312\python.exe`
+
+在此环境下安装依赖：
+```sh
+D:\software\anaconda\envs\py312\python.exe -m pip install -e .
+```
+
+#### 方案 B：使用 uv 创建的 .venv 虚拟环境
+
+1. 创建虚拟环境并安装依赖：
 
    ```sh
    uv sync --frozen
    source .venv/bin/activate
    ```
 
-2. Run the FastAPI server:
+2. 运行 FastAPI 服务器：
 
    ```sh
    python src/run_service.py
    ```
 
-3. In a separate terminal, run the Streamlit app:
+3. 在另一个独立的终端中运行 Streamlit 应用：
 
    ```sh
    streamlit run src/streamlit_app.py
    ```
 
-4. Open your browser and navigate to the URL provided by Streamlit (usually `http://localhost:8501`).
+4. 打开浏览器并导航到 Streamlit 提供的 URL（通常为 `http://localhost:8501`）。
 
-## Projects built with or inspired by agent-service-toolkit
+## 贡献
 
-The following are a few of the public projects that drew code or inspiration from this repo.
+欢迎提交贡献！请随时提交 Pull Request。目前，测试需要在不使用 Docker 的本地开发环境下运行。要运行智能体服务的测试：
 
-- **[PolyRAG](https://github.com/QuentinFuxa/PolyRAG)** - Extends agent-service-toolkit with RAG capabilities over both PostgreSQL databases and PDF documents.
-- **[alexrisch/agent-web-kit](https://github.com/alexrisch/agent-web-kit)** - A Next.JS frontend for agent-service-toolkit
-- **[raushan-in/dapa](https://github.com/raushan-in/dapa)** - Digital Arrest Protection App (DAPA) enables users to report financial scams and frauds efficiently via a user-friendly platform.
-
-**Please create a pull request editing the README or open a discussion with any new ones to be added!** Would love to include more projects.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. Currently the tests need to be run using the local development without Docker setup. To run the tests for the agent service:
-
-1. Ensure you're in the project root directory and have activated your virtual environment.
-
-2. Install the development dependencies and pre-commit hooks:
+1. 确保您处于项目根目录下并已激活虚拟环境。
+2. 安装开发依赖和 pre-commit 钩子：
 
    ```sh
    uv sync --frozen
    pre-commit install
    ```
 
-3. Run the tests using pytest:
+3. 使用 pytest 运行测试：
 
    ```sh
    pytest
    ```
 
-## License
+## 许可证
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+本项目基于 MIT 许可证开源 - 详情请参阅 LICENSE 文件。

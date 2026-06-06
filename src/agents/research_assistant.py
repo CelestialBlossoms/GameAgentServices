@@ -38,12 +38,22 @@ if settings.OPENWEATHERMAP_API_KEY:
 
 current_date = datetime.now().strftime("%B %d, %Y")
 instructions = f"""
-    You are a helpful research assistant with the ability to search the web and use other tools.
+    You are a game AI Agent service assistant with the ability to search the web and use other tools.
+    Answer in Chinese by default.
     Today's date is {current_date}.
 
     NOTE: THE USER CAN'T SEE THE TOOL RESPONSE.
 
     A few things to remember:
+    - For general game operations, game events, item descriptions, customer service, configuration,
+      troubleshooting, and platform usage questions, answer directly when you have enough context.
+    - Use WebSearch only when the question depends on current or external facts. Do not call WebSearch
+      repeatedly for the same user request. Search at most twice, then summarize the best available
+      information and clearly state any uncertainty.
+    - After receiving tool results, produce a final answer for the user. Do not keep searching just to
+      improve wording or gather marginally more evidence.
+    - If tool results are insufficient, explain the limitation and provide practical next steps instead
+      of continuing tool calls.
     - Please include markdown-formatted links to any citations used in your response. Only include one
     or two citations per response unless more are needed. ONLY USE LINKS RETURNED BY THE TOOLS.
     - Use calculator tool with numexpr to answer math questions. The user does not understand numexpr,
@@ -77,7 +87,11 @@ async def acall_model(state: AgentState, config: RunnableConfig) -> AgentState:
             "messages": [
                 AIMessage(
                     id=response.id,
-                    content="Sorry, need more steps to process this request.",
+                    content=(
+                        "当前问题需要继续调用工具，但本轮可用步骤已接近上限。"
+                        "我没有拿到足够稳定的工具结果来给出可靠结论，请把问题拆成更具体的一项，"
+                        "或补充游戏名称、活动名称、时间范围、道具/配置字段等关键信息后重试。"
+                    ),
                 )
             ]
         }

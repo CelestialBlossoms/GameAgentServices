@@ -37,40 +37,54 @@ class Agent:
 
 
 agents: dict[str, Agent] = {
-    "chatbot": Agent(description="一个简单的聊天机器人。", name="聊天机器人", graph_like=chatbot),
+    "chatbot": Agent(
+        description="面向游戏服务日常巡检、发布协助、异常定位和运营问题排查的运维助手。",
+        name="游戏运维",
+        graph_like=chatbot,
+    ),
     "research-assistant": Agent(
-        description="支持网页搜索和计算器的 AI 研究助手。",
-        name="研究助手",
+        description="面向游戏活动咨询、活动规则解读、运营内容生成和玩家问题归纳的活动助手。",
+        name="游戏活动",
         graph_like=research_assistant,
     ),
     "rag-assistant": Agent(
-        description="RAG 知识库助手，可查询企业内部文档。",
-        name="RAG 知识库助手",
+        description="面向任务文本、道具说明、FAQ 和游戏规则知识库检索的内容生成助手。",
+        name="道具生成",
         graph_like=rag_assistant,
     ),
-    "command-agent": Agent(description="命令执行智能体。", name="命令智能体", graph_like=command_agent),
-    "bg-task-agent": Agent(description="后台任务智能体。", name="后台任务", graph_like=bg_task_agent),
+    "command-agent": Agent(
+        description="面向玩家智能客服、问题分类、回复模板和异常工单辅助处理的客服助手。",
+        name="游戏客服",
+        graph_like=command_agent,
+    ),
+    "bg-task-agent": Agent(
+        description="面向 Prompt 版本、灰度开关、限流配置、任务记录和后台作业处理的配置助手。",
+        name="游戏配置",
+        graph_like=bg_task_agent,
+    ),
     "langgraph-supervisor-agent": Agent(
-        description="多智能体主管协调器",
-        name="主管智能体",
+        description="基于简历中的 LangGraph 多 Agent 平台经验，统一协调客服、活动、道具、配置和运维任务。",
+        name="游戏服务调度",
         graph_like=langgraph_supervisor_agent,
     ),
     "langgraph-supervisor-hierarchy-agent": Agent(
-        description="支持嵌套层级的多智能体主管",
-        name="层级主管智能体",
+        description="面向游戏 AI Agent 智能服务平台的层级化任务编排，支持复杂游戏业务流程拆解和多 Agent 协作。",
+        name="游戏业务编排",
         graph_like=langgraph_supervisor_hierarchy_agent,
     ),
     "interrupt-agent": Agent(
-        description="支持中断流程的智能体。", name="中断流程", graph_like=interrupt_agent
+        description="面向运营内容、配置变更和敏感客服回复的人机协同审核流程。",
+        name="人工审核流程",
+        graph_like=interrupt_agent,
     ),
     "knowledge-base-agent": Agent(
-        description="基于 Amazon Bedrock 知识库的 RAG 智能体",
-        name="知识库检索",
+        description="面向游戏规则、活动说明、FAQ、任务文本和道具说明的 RAG 知识库检索能力。",
+        name="游戏知识库",
         graph_like=kb_agent,
     ),
     "github-mcp-agent": Agent(
-        description="集成 GitHub MCP 工具，支持仓库管理和开发工作流。",
-        name="GitHub 助手",
+        description="面向游戏 AI Agent 平台代码仓库、版本迭代、上线检查清单和故障复盘文档的研发协作助手。",
+        name="研发协作助手",
         graph_like=github_mcp_agent,
     ),
 }

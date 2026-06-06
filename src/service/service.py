@@ -47,6 +47,7 @@ from service.utils import (
 
 warnings.filterwarnings("ignore", category=LangChainBetaWarning)
 logger = logging.getLogger(__name__)
+AGENT_RECURSION_LIMIT = 50
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -163,6 +164,7 @@ async def _handle_input(user_input: UserInput, agent: AgentGraph) -> tuple[dict[
         configurable=configurable,
         run_id=run_id,
         callbacks=callbacks,
+        recursion_limit=AGENT_RECURSION_LIMIT,
     )
 
     # Check for interrupts that need to be resumed

@@ -8,8 +8,9 @@
 ## 适用场景
 
 - 项目目录：`D:\github\agenttoolkit`
-- 依赖管理：`uv`
-- Python 版本：`>=3.11,<3.14`
+- 依赖管理：`uv` 或 `pip`（Conda 虚拟环境）
+- Python 版本：`>=3.11,<3.14` (当前环境为 Python 3.12.11)
+- Python 环境路径：`D:\software\anaconda\envs\py312\python.exe`
 - 默认后端端口：`8080`
 - 默认前端端口：`8501`
 - 当前本地模型配置：`deepseek-chat`
@@ -292,7 +293,8 @@ Invoke-RestMethod http://localhost:8080/info -Headers @{
 
 ## 本次本机验证记录
 
-- 已执行 `uv sync --frozen` 并创建 `.venv`
+- 已配置并使用 Anaconda Python 环境：`D:\software\anaconda\envs\py312\python.exe`
+- 依赖管理：在 `D:\software\anaconda\envs\py312\` 环境中通过 `pip` 安装项目所需的库
 - 本机未检测到 `docker` 命令
 - 使用临时 `DATABASE_TYPE=sqlite` 成功启动后端
 - `http://localhost:8080/health` 返回 `{"status":"ok"}`

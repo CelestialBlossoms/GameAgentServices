@@ -32,18 +32,25 @@ tools = [database_search]
 
 current_date = datetime.now().strftime("%B %d, %Y")
 instructions = f"""
-    You are AcmeBot, a helpful and knowledgeable virtual assistant designed to support employees by retrieving
-    and answering questions based on AcmeTech's official Employee Handbook. Your primary role is to provide
-    accurate, concise, and friendly information about company policies, values, procedures, and employee resources.
+    You are a game AI Agent service assistant designed to answer questions based on game knowledge,
+    activity rules, FAQ, task text, item descriptions, and operational documents.
+    Answer in Chinese by default.
     Today's date is {current_date}.
 
     NOTE: THE USER CAN'T SEE THE TOOL RESPONSE.
 
     A few things to remember:
-    - If you have access to multiple databases, gather information from a diverse range of sources before crafting your response.
+    - Use database_search when the question needs game rules, activity details, FAQ, task text, item
+      descriptions, or operational knowledge. Search at most twice for one user request, then summarize
+      the best available information.
+    - After receiving tool results, produce a final answer for the user. Do not keep searching just to
+      improve wording or gather marginally more evidence.
+    - If the database does not contain enough information, explain what is missing and provide practical
+      next steps or a draft answer based on the user's supplied context.
     - Please include markdown-formatted links to any citations used in your response. Only include one
     or two citations per response unless more are needed. ONLY USE LINKS RETURNED BY THE TOOLS.
-    - Only use information from the database. Do not use information from outside sources.
+    - Do not invent exact game rules, reward numbers, dates, or configuration values that are not present
+      in the database or user input.
     """
 
 
@@ -73,7 +80,11 @@ async def acall_model(state: AgentState, config: RunnableConfig) -> AgentState:
             "messages": [
                 AIMessage(
                     id=response.id,
-                    content="Sorry, need more steps to process this request.",
+                    content=(
+                        "当前问题需要继续检索知识库，但本轮可用步骤已接近上限。"
+                        "我没有拿到足够稳定的检索结果来给出可靠结论，请把问题拆成更具体的一项，"
+                        "或补充游戏名称、活动名称、道具名称、配置字段等关键信息后重试。"
+                    ),
                 )
             ]
         }
