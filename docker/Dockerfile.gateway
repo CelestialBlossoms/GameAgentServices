@@ -1,0 +1,43 @@
+# =============================================
+# Go Gateway 多阶段构建
+# 第一阶段：编译 Go 二进制
+# 第二阶段：仅复制二进制到极小的 alpine 镜像
+# =============================================
+
+# ---------- 编译阶段 ----------
+FROM golang:1.22-alpine AS builder
+
+WORKDIR /build
+
+# 先复制依赖文件，利用 Docker 缓存层加速
+COPY go_gateway/go.mod go_gateway/go.sum* ./
+RUN go mod download 2>/dev/null || true
+
+# 复制源码并编译
+COPY go_gateway/ .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /gateway main.go
+
+# ---------- 运行阶段 ----------
+FROM alpine:3.19
+
+# 安装必要工具
+RUN apk --no-cache add ca-certificates tzdata curl && \
+    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
+
+# 创建非 root 用户
+RUN adduser -D -u 1001 gateway
+USER gateway
+
+# 创建日志目录
+RUN mkdir -p /var/log/gateway 2>/dev/null || true
+
+WORKDIR /app
+COPY --from=builder /gateway .
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+ENTRYPOINT ["./gateway"]

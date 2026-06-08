@@ -70,3 +70,33 @@ services:
         - path: src/streamlit_app.py
           action: sync+restart
           target: /app/streamlit_app.py
+
+  # ==========================================
+  # Go 控制网关（新增，与 Python 服务并行运行）
+  # 客户端可通过 8000 端口访问 Go 网关
+  # Go 网关会将 Agent 请求反向代理到 agent_service:8080
+  # ==========================================
+  go_gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - GATEWAY_PORT=8000
+      - PYTHON_AGENT_URL=http://agent_service:8080
+      - AUTH_SECRET=${AUTH_SECRET:-}
+      - REDIS_URL=${REDIS_URL:-redis://localhost:6379/0}
+    depends_on:
+      agent_service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - gateway_logs:/var/log/gateway
+
+volumes:
+  gateway_logs:
