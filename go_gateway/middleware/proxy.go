@@ -17,9 +17,10 @@ import (
 
 // ReverseProxy 反向代理中间件，将请求转发到 Python Agent Service
 type ReverseProxy struct {
-	target *url.URL
-	proxy  *httputil.ReverseProxy
-	cfg    *config.Config
+	target       *url.URL
+	proxy        *httputil.ReverseProxy
+	cfg          *config.Config
+	streamClient *http.Client
 }
 
 // NewReverseProxy 创建反向代理实例
@@ -47,10 +48,21 @@ func NewReverseProxy(cfg *config.Config) *ReverseProxy {
 		fmt.Fprintf(w, `{"error":"Python Agent 服务不可用","detail":"%s"}`, err.Error())
 	}
 
+	// 创建专用于流式 SSE 请求的 HTTP Client (共享 Transport，避免 Goroutine 泄露)
+	streamClient := &http.Client{
+		Timeout: 300 * time.Second, // Agent 任务最大超时 5 分钟
+		Transport: &http.Transport{
+			MaxIdleConns:        50,
+			MaxIdleConnsPerHost: 20,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
+
 	return &ReverseProxy{
-		target: target,
-		proxy:  proxy,
-		cfg:    cfg,
+		target:       target,
+		proxy:        proxy,
+		cfg:          cfg,
+		streamClient: streamClient,
 	}
 }
 
@@ -100,17 +112,8 @@ func (rp *ReverseProxy) ForwardStream(c *gin.Context) {
 	proxyReq.Header.Set("X-Request-ID", requestID)
 	proxyReq.Header.Set("X-Forwarded-For", c.ClientIP())
 
-	// 使用自定义 HTTP 客户端发起流式请求
-	client := &http.Client{
-		Timeout: 300 * time.Second, // Agent 任务最大超时 5 分钟
-		Transport: &http.Transport{
-			MaxIdleConns:        50,
-			MaxIdleConnsPerHost: 20,
-			IdleConnTimeout:     90 * time.Second,
-		},
-	}
-
-	resp, err := client.Do(proxyReq)
+	// 使用共享的 HTTP 客户端发起流式请求
+	resp, err := rp.streamClient.Do(proxyReq)
 	if err != nil {
 		log.Printf("[Proxy:Stream] [%s] 上游请求失败: %v", requestID, err)
 		c.JSON(http.StatusBadGateway, gin.H{"error": "Python Agent 服务不可用"})
